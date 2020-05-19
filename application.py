@@ -1,10 +1,26 @@
 """ Flask Test with Dynamo DB for Elastic Beanstalk"""
 import boto3
-from boto3.dynamodb.conditions import Key, Attr
-from flask import Flask, Response
 import simplejson as json
+from flask import Flask, Response
+from flask_cognito import cognito_auth_required
+from flask_cognito import CognitoAuth
+
 
 application = Flask(__name__)
+
+application.config.update({
+    'COGNITO_REGION': 'us-east-1',
+    'COGNITO_USERPOOL_ID': '',
+
+    # optional
+    'COGNITO_APP_CLIENT_ID': '',  # client ID you wish to verify user is authenticated against
+    'COGNITO_CHECK_TOKEN_EXPIRATION': False,  # disable token expiration checking for testing purposes
+    'COGNITO_JWT_HEADER_NAME': 'X-MyApp-Authorization',
+    'COGNITO_JWT_HEADER_PREFIX': 'Bearer'
+})
+
+
+cogauth = CognitoAuth(application)
 
 
 def jsonify(obj):
@@ -47,6 +63,7 @@ def create_table(ddb_create):
 
 
 @application.route('/')
+@cognito_auth_required
 def hello_world():
     response = table.get_item(
         Key={
@@ -54,7 +71,6 @@ def hello_world():
             'last_name': 'Corn'
         }
     )
-    print(response)
     item = response['Item']
 
     return jsonify(item)
